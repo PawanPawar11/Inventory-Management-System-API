@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import { connectToDB } from "./config/db.js";
+import crudRouter from "./routes/crud.routes.js";
 
 dotenv.config();
 
@@ -11,9 +12,7 @@ const app = express();
 
 connectToDB();
 
-app.get("/", (req, res) => {
-  res.send({ message: "Default route is working fine! ✅" });
-});
+app.use("/api", crudRouter);
 
 app.listen(PORT, () =>
   console.log(
