@@ -11,7 +11,7 @@ const crudSchema = new mongoose.Schema({
   description: {
     type: String,
     trim: true,
-    maxLength: 30,
+    maxLength: 50,
   },
   stock_quantity: {
     type: Number,

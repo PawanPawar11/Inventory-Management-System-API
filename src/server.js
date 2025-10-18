@@ -7,8 +7,9 @@ import crudRouter from "./routes/crud.routes.js";
 dotenv.config();
 
 const PORT = process.env.PORT || 3001;
-app.use(cors());
 const app = express();
+app.use(cors());
+app.use(express.json());
 
 connectToDB();
 
