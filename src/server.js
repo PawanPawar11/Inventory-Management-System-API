@@ -1,6 +1,6 @@
 import express from "express";
-import cors from "cors";
 import dotenv from "dotenv";
+import cors from "cors";
 import { connectToDB } from "./config/db.js";
 import crudRouter from "./routes/crud.routes.js";
 
@@ -13,8 +13,8 @@ app.use(express.json());
 
 connectToDB();
 
-app.use("/api", crudRouter);
-// app.use("/api/products", crudRouter);
+app.use("/api/products", crudRouter);
+// app.use("/api", crudRouter);
 
 app.listen(PORT, () =>
   console.log(
