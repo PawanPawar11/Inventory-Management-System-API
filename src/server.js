@@ -16,6 +16,10 @@ connectToDB();
 app.use("/api/products", crudRouter);
 // app.use("/api", crudRouter);
 
+app.use((req, res, next) => {
+  res.status(404).json({ success: false, message: "Route not found" });
+});
+
 app.listen(PORT, () =>
   console.log(
     `Server is running on PORT:${PORT} 
