@@ -208,8 +208,20 @@ export const decreaseStock = async (req, res) => {
 };
 
 export const checkLowStockQuantity = async (req, res) => {
-  const lowThresholdProducts = await inventoryModel.find({
-    $expr: { $lt: ["$stock_quantity", "$low_stock_threshold"] },
-  });
-  return res.status(200).json({ lowThresholdProducts });
+  try {
+    const lowThresholdProducts = await inventoryModel
+      .find({
+        $expr: { $lt: ["$stock_quantity", "$low_stock_threshold"] },
+      })
+      .sort({ stock_quantity: 1 });
+
+    return res.status(200).json({
+      success: true,
+      count: lowThresholdProducts.length,
+      message: `${lowThresholdProducts.length} product(s) below stock threshold`,
+      data: lowThresholdProducts,
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
 };
