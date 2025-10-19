@@ -17,6 +17,11 @@ const crudSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
+  low_stock_threshold: {
+    type: Number,
+    default: 10,
+    min: 0,
+  },
 });
 
 const inventoryModel = mongoose.model("Inventory", crudSchema);

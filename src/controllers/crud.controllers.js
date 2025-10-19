@@ -65,3 +65,10 @@ export const decreaseStock = async (req, res) => {
 
   return res.status(200).json({ fetchedProduct });
 };
+
+export const checkLowStockQuantity = async (req, res) => {
+  const lowThresholdProducts = await inventoryModel.find({
+    $expr: { $lt: ["$stock_quantity", "$low_stock_threshold"] },
+  });
+  return res.status(200).json({ lowThresholdProducts });
+};
