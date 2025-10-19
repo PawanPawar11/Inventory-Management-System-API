@@ -8,6 +8,7 @@ import {
   increaseStock,
   decreaseStock,
   checkLowStockQuantity,
+  checkApiHealth,
 } from "../controllers/crud.controllers.js";
 
 const Router = express.Router();
@@ -20,5 +21,6 @@ Router.delete("/delete/:id", deleteProduct);
 Router.put("/increase/:id", increaseStock);
 Router.put("/decrease/:id", decreaseStock);
 Router.get("/low-stock-threshold", checkLowStockQuantity);
+Router.get("/health", checkApiHealth);
 
 export default Router;
