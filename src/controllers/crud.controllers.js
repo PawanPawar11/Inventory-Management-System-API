@@ -1,47 +1,135 @@
 import inventoryModel from "../models/crud.model.js";
+import mongoose from "mongoose";
 
 export const createProduct = async (req, res) => {
-  const { name, description, stock_quantity } = req.body;
-  const newProduct = await inventoryModel.create({
-    name,
-    description,
-    stock_quantity,
-  });
-  return res.status(201).json({ newProduct });
+  try {
+    const { name, description, stock_quantity, low_stock_threshold } = req.body;
+
+    if (!name || !description) {
+      return res.status(400).json({
+        success: false,
+        message: "Name and description are required",
+      });
+    }
+
+    if (stock_quantity < 0) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Stock quantity cannot be negative" });
+    }
+
+    const newProduct = await inventoryModel.create({
+      name,
+      description,
+      stock_quantity: stock_quantity || 0,
+      low_stock_threshold: low_stock_threshold || 10,
+    });
+
+    return res.status(201).json({ success: true, data: newProduct });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
 };
 
 export const readProducts = async (req, res) => {
-  const getAllProducts = await inventoryModel.find();
-  return res.status(200).json({ getAllProducts });
+  try {
+    const getAllProducts = await inventoryModel.find().sort({ createdAt: -1 });
+    return res.status(200).json({
+      success: true,
+      count: getAllProducts.length,
+      data: getAllProducts,
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
 };
 
 export const getOneProduct = async (req, res) => {
-  const { id } = req.params;
-  const fetchedProduct = await inventoryModel.findOne({ _id: id });
-  return res.status(200).json({ fetchedProduct });
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid product ID format" });
+    }
+    const fetchedProduct = await inventoryModel.findOne({ _id: id });
+    if (!fetchedProduct) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Product not found" });
+    }
+    return res.status(200).json({ success: true, data: fetchedProduct });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
 };
 
 export const updateProduct = async (req, res) => {
-  const { id } = req.params;
-  const { name, description, stock_quantity } = req.body;
-  const updatedProduct = await inventoryModel.findOneAndUpdate(
-    { _id: id },
-    {
-      name,
-      description,
-      stock_quantity,
-    },
-    {
-      new: true,
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid product ID format" });
     }
-  );
-  res.status(200).json({ updatedProduct });
+
+    const { name, description, stock_quantity, low_stock_threshold } = req.body;
+
+    if (stock_quantity !== undefined && stock_quantity < 0) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Stock quantity cannot be negative" });
+    }
+
+    const updatedProduct = await inventoryModel.findOneAndUpdate(
+      { _id: id },
+      {
+        name,
+        description,
+        stock_quantity,
+        low_stock_threshold,
+      },
+      {
+        new: true,
+      }
+    );
+
+    if (!updatedProduct) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Product not found" });
+    }
+
+    return res.status(200).json({ success: true, data: updatedProduct });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
 };
 
 export const deleteProduct = async (req, res) => {
-  const { id } = req.params;
-  const deletedProduct = await inventoryModel.findByIdAndDelete(id);
-  res.status(200).json({ deletedProduct });
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid product ID format" });
+    }
+    const deletedProduct = await inventoryModel.findByIdAndDelete(id);
+
+    if (!deletedProduct) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Product not found" });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Product deleted successfully",
+      data: deletedProduct,
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
 };
 
 export const increaseStock = async (req, res) => {
