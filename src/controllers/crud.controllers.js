@@ -43,3 +43,25 @@ export const deleteProduct = async (req, res) => {
   const deletedProduct = await inventoryModel.findByIdAndDelete(id);
   res.status(200).json({ deletedProduct });
 };
+
+export const increaseStock = async (req, res) => {
+  const { id } = req.params;
+  const { quantity } = req.body;
+  const fetchedProduct = await inventoryModel.findById(id);
+
+  fetchedProduct.stock_quantity += quantity;
+  fetchedProduct.save();
+
+  return res.status(200).json({ fetchedProduct });
+};
+
+export const decreaseStock = async (req, res) => {
+  const { id } = req.params;
+  const { quantity } = req.body;
+  const fetchedProduct = await inventoryModel.findById(id);
+
+  fetchedProduct.stock_quantity -= quantity;
+  fetchedProduct.save();
+
+  return res.status(200).json({ fetchedProduct });
+};

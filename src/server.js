@@ -14,6 +14,7 @@ app.use(express.json());
 connectToDB();
 
 app.use("/api", crudRouter);
+// app.use("/api/products", crudRouter);
 
 app.listen(PORT, () =>
   console.log(
