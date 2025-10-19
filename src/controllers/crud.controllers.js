@@ -134,24 +134,77 @@ export const deleteProduct = async (req, res) => {
 
 export const increaseStock = async (req, res) => {
   const { id } = req.params;
+  if (!mongoose.isValidObjectId(id)) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Invalid product ID format" });
+  }
+
   const { quantity } = req.body;
+
+  if (quantity === undefined || quantity <= 0) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Quantity must be a positive number" });
+  }
+
   const fetchedProduct = await inventoryModel.findById(id);
+
+  if (!fetchedProduct) {
+    return res
+      .status(404)
+      .json({ success: false, message: "Product not found" });
+  }
 
   fetchedProduct.stock_quantity += quantity;
   fetchedProduct.save();
 
-  return res.status(200).json({ fetchedProduct });
+  return res.status(200).json({
+    success: true,
+    message: `Stock increased by ${quantity}`,
+    data: fetchedProduct,
+  });
 };
 
 export const decreaseStock = async (req, res) => {
   const { id } = req.params;
+  if (!mongoose.isValidObjectId(id)) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Invalid product ID format" });
+  }
+
   const { quantity } = req.body;
+
+  if (quantity === undefined || quantity <= 0) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Quantity must be a positive number" });
+  }
+
   const fetchedProduct = await inventoryModel.findById(id);
+
+  if (!fetchedProduct) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Product not found" });
+  }
+
+  if (fetchedProduct.stock_quantity < quantity) {
+    return res.status(400).json({
+      success: false,
+      message: `Insufficient stock, Available: ${fetchedProduct.stock_quantity}, Requested: ${quantity}`,
+    });
+  }
 
   fetchedProduct.stock_quantity -= quantity;
   fetchedProduct.save();
 
-  return res.status(200).json({ fetchedProduct });
+  return res.status(200).json({
+    success: true,
+    message: `Stock decreased by ${quantity}`,
+    data: fetchedProduct,
+  });
 };
 
 export const checkLowStockQuantity = async (req, res) => {
