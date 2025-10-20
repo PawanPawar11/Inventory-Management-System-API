@@ -26,3 +26,5 @@ app.listen(PORT, () =>
     Address is -> http://localhost:5001`
   )
 );
+
+export default app;

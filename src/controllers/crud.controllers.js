@@ -49,7 +49,7 @@ export const getOneProduct = async (req, res) => {
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res
-        .status(400)
+        .status(404)
         .json({ success: false, message: "Invalid product ID format" });
     }
     const fetchedProduct = await inventoryModel.findOne({ _id: id });
@@ -69,7 +69,7 @@ export const updateProduct = async (req, res) => {
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res
-        .status(400)
+        .status(404)
         .json({ success: false, message: "Invalid product ID format" });
     }
 
@@ -111,7 +111,7 @@ export const deleteProduct = async (req, res) => {
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res
-        .status(400)
+        .status(404)
         .json({ success: false, message: "Invalid product ID format" });
     }
     const deletedProduct = await inventoryModel.findByIdAndDelete(id);
@@ -136,75 +136,107 @@ export const increaseStock = async (req, res) => {
   const { id } = req.params;
   if (!mongoose.isValidObjectId(id)) {
     return res
-      .status(400)
+      .status(404)
       .json({ success: false, message: "Invalid product ID format" });
   }
 
   const { quantity } = req.body;
+  // Ensure 'quantity' is treated as a number
+  const increaseAmount = Number(quantity);
 
-  if (quantity === undefined || quantity <= 0) {
+  // Also check if the resulting number is valid
+  if (isNaN(increaseAmount) || increaseAmount <= 0) {
     return res
       .status(400)
       .json({ success: false, message: "Quantity must be a positive number" });
   }
 
-  const fetchedProduct = await inventoryModel.findById(id);
+  try {
+    // This is the atomic operation.
+    // $inc atomically increments the field by the given value.
+    const updatedProduct = await inventoryModel.findByIdAndUpdate(
+      id, // 1. Find the document by its ID
+      { $inc: { stock_quantity: increaseAmount } }, // 2. Atomically increase the stock
+      {
+        new: true, // 3. Return the document *after* the update is applied
+      }
+    );
 
-  if (!fetchedProduct) {
-    return res
-      .status(404)
-      .json({ success: false, message: "Product not found" });
+    // If the ID was valid but no product was found, updatedProduct will be null
+    if (!updatedProduct) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Product not found" });
+    }
+
+    // Success! Send back the updated product
+    return res.status(200).json({
+      success: true,
+      message: `Stock increased by ${increaseAmount}`,
+      data: updatedProduct,
+    });
+  } catch (error) {
+    // Catch any other unexpected server or database errors
+    return res.status(500).json({ success: false, message: error.message });
   }
-
-  fetchedProduct.stock_quantity += quantity;
-  fetchedProduct.save();
-
-  return res.status(200).json({
-    success: true,
-    message: `Stock increased by ${quantity}`,
-    data: fetchedProduct,
-  });
 };
 
 export const decreaseStock = async (req, res) => {
   const { id } = req.params;
   if (!mongoose.isValidObjectId(id)) {
     return res
-      .status(400)
+      .status(404)
       .json({ success: false, message: "Invalid product ID format" });
   }
 
   const { quantity } = req.body;
+  const decreaseAmount = Number(quantity); // Ensure quantity is a number
 
-  if (quantity === undefined || quantity <= 0) {
+  if (isNaN(decreaseAmount) || decreaseAmount <= 0) {
     return res
       .status(400)
       .json({ success: false, message: "Quantity must be a positive number" });
   }
 
-  const fetchedProduct = await inventoryModel.findById(id);
+  try {
+    // This is the atomic operation
+    const updatedProduct = await inventoryModel.findOneAndUpdate(
+      {
+        _id: id,
+        stock_quantity: { $gte: decreaseAmount }, // 1. Check if stock is sufficient
+      },
+      {
+        $inc: { stock_quantity: -decreaseAmount }, // 2. Decrease the stock
+      },
+      {
+        new: true, // Return the document *after* the update
+      }
+    );
 
-  if (!fetchedProduct) {
-    return res
-      .status(400)
-      .json({ success: false, message: "Product not found" });
-  }
+    // If the product wasn't found OR stock was insufficient, updatedProduct will be null
+    if (!updatedProduct) {
+      // We check the product again to give a more specific error message
+      const product = await inventoryModel.findById(id);
+      if (!product) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Product not found" });
+      } else {
+        return res.status(400).json({
+          success: false,
+          message: `Insufficient stock. Available: ${product.stock_quantity}, Requested: ${decreaseAmount}`,
+        });
+      }
+    }
 
-  if (fetchedProduct.stock_quantity < quantity) {
-    return res.status(400).json({
-      success: false,
-      message: `Insufficient stock, Available: ${fetchedProduct.stock_quantity}, Requested: ${quantity}`,
+    return res.status(200).json({
+      success: true,
+      message: `Stock decreased by ${decreaseAmount}`,
+      data: updatedProduct,
     });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
   }
-
-  fetchedProduct.stock_quantity -= quantity;
-  fetchedProduct.save();
-
-  return res.status(200).json({
-    success: true,
-    message: `Stock decreased by ${quantity}`,
-    data: fetchedProduct,
-  });
 };
 
 export const checkLowStockQuantity = async (req, res) => {
